@@ -1,0 +1,101 @@
+<?php
+session_start();
+require("config.php");
+
+// Nhận dữ liệu JSON từ AJAX request
+$data = json_decode(file_get_contents("php://input"), true);
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $username = $data['username'] ?? '';
+    $email = $data['email'] ?? '';
+    $password = $data['password'] ?? '';
+    $user_type = $data['user_type'] ?? '';
+
+    // Mã hóa mật khẩu
+    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+
+    // Chuẩn bị và bind
+    $stmt = $conn->prepare("INSERT INTO users (Username, Email, UserPassword, UserType) VALUES (?, ?, ?, ?)");
+    $stmt->bind_param("ssss", $username, $email, $hashed_password, $user_type);
+
+    // Thực thi câu lệnh và kiểm tra lỗi
+    if ($stmt->execute()) {
+        echo "Registration successful!";
+    } else {
+        echo "Error: " . $stmt->error;
+    }
+
+    $stmt->close();
+}
+
+$conn->close();
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
+
+    <title>Register</title>
+
+    <script>
+        function registerUser(event) {
+            event.preventDefault(); // Ngăn chặn form gửi đi mặc định
+
+            // Lấy giá trị từ form
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const userType = document.getElementById('user_type').value;
+
+            // Tạo đối tượng chứa dữ liệu
+            const userData = {
+                username: username,
+                email: email,
+                password: password,
+                user_type: userType
+            };
+
+            // Gửi dữ liệu đến server bằng AJAX
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', 'register.php', true);
+            xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    alert(xhr.responseText);
+                }
+            };
+            xhr.send(JSON.stringify(userData));
+        }
+    </script>
+</head>
+<body>
+    <header>
+        <div>Tên người dùng đăng nhập</div>
+        <button>Đăng ký</button>
+        <button>Đăng nhập</button>
+        <button>Đăng xuất</button>
+    </header>
+
+    <h2>Register</h2>
+    <form onsubmit="registerUser(event)">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required><br><br>
+
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required><br><br>
+
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required><br><br>
+
+        <label for="user_type">User Type:</label>
+        <select id="user_type" name="user_type" required>
+            <option value="student">Người học</option>
+            <option value="worker">Người làm</option>
+        </select><br><br>
+
+        <input type="submit" value="Register">
+    </form>
+</body>
+</html>
